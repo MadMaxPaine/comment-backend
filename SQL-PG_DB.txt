@@ -1,0 +1,48 @@
+Table "Users" {
+  "id" SERIAL [pk, increment]
+  "username" VARCHAR(255)
+  "email" VARCHAR(255) [unique]
+  "password" TEXT [not null]
+  "homepage" VARCHAR(255)
+  "avatar" VARCHAR(255)
+}
+
+Table "Tokens" {
+  "id" SERIAL [pk, increment]
+  "userId" INTEGER [not null]
+  "refreshToken" TEXT [not null]
+}
+
+Table "Anonymous" {
+  "id" SERIAL [pk, increment]
+  "username" VARCHAR(255) [not null]
+  "email" VARCHAR(255) [not null]
+  "homepage" VARCHAR(255)
+  "ipAddress" VARCHAR(255)
+  "userAgent" VARCHAR(255)
+  "fingerprint" VARCHAR(255)
+  "country" VARCHAR(255)
+}
+
+Table "Comments" {
+  "id" SERIAL [pk, increment]
+  "text" TEXT [not null]
+  "fileUrl" VARCHAR(255)
+  "parentId" INTEGER
+  "userId" INTEGER
+  "anonymousId" INTEGER
+
+  Indexes {
+    parentId
+    userId
+    anonymousId
+  }
+}
+
+Ref:"Users"."id" < "Tokens"."userId" [delete: cascade]
+
+Ref:"Comments"."id" < "Comments"."parentId" [delete: cascade]
+
+Ref:"Users"."id" < "Comments"."userId" [delete: set null]
+
+Ref:"Anonymous"."id" < "Comments"."anonymousId" [delete: set null]
