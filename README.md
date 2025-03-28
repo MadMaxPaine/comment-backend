@@ -1,40 +1,43 @@
-Here's the information structured into two columns for better readability:
+Here is the information structured into two columns with the content aligned to the left for better readability:
 
-**Backend - What's Done:**
+### **Backend - What's Done:**
 
-| **Feature**                          | **Status**         |
-|--------------------------------------|--------------------|
-| Database (db), Models                | Completed          |
-| Centralized Configurations (all configs) | Completed      |
-| Middlewares                          | Completed          |
-| DTOs (Data Transfer Objects)         | Completed          |
-| Error Handling                       | Completed          |
-| Routes, Controllers                  | Completed          |
-| Services                             | Completed          |
-| File Upload (User Avatar, etc.)      | 70% Done           |
-| Sessions                             | Completed          |
-| CAPTCHA (Backend Part)               | Completed          |
-| JWT (Full Implementation)            | Completed          |
+| **Feature**                           | **Status**         |
+|---------------------------------------|--------------------|
+| Database (db), Models                 | Completed          |
+| Centralized Configurations (all configs) | Completed       |
+| Middlewares                           | Completed          |
+| DTOs (Data Transfer Objects)          | Completed          |
+| Error Handling                        | Completed          |
+| Routes, Controllers                   | Completed          |
+| Services                              | Completed          |
+| File Upload (User Avatar, etc.)       | 70% Done           |
+| Sessions                              | Completed          |
+| CAPTCHA (Backend Part)                | Completed          |
+| JWT (Full Implementation)             | Completed          |
 
-**Backend - What's Left to Do:**
+---
 
-| **Feature**                          | **Status**         |
-|--------------------------------------|--------------------|
-| Sockets                              | Pending            |
-| Comment File Processing              | Pending            |
-| Server-side Validation              | Partly Done         |
-| SQL Injection Prevention             | Pending (Express?) |
-| Sorting                              | Pending            |
-| Pagination Requests                 | Pending             |
-| Stack?                               | Clarify Stack      |
-| Events?                              | Clarify Events     |
-| Testing with Jest                    | Pending            |
-| Code Cleaning                        | Pending            |
-| Error Checking                       | Pending            |
-| Docker Integration                   | Pending            |
-| Docker Compose Setup                 | Pending            |
-| Deployment                           | Pending            |
+### **Backend - What's Left to Do:**
 
+| **Feature**                           | **Status**         |
+|---------------------------------------|--------------------|
+| Sockets                               | Pending            |
+| Comment File Processing               | Pending            |
+| Server-side Validation               | Partly Done         |
+| SQL Injection Prevention              | Pending (Express?) |
+| Sorting                               | Pending            |
+| Pagination Requests                  | Pending             |
+| Stack?                                | Clarify Stack      |
+| Events?                               | Clarify Events     |
+| Testing with Jest                     | Pending            |
+| Code Cleaning                         | Pending            |
+| Error Checking                        | Pending            |
+| Docker Integration                    | Pending            |
+| Docker Compose Setup                  | Pending            |
+| Deployment                            | Pending            |
+
+This layout aligns the content to the left and provides clarity for both the completed tasks and the tasks that are still pending. Let me know if you need any more adjustments!
 It looks like you're asking for a complete, clear, and structured guide to launching your backend with the appropriate environment variables and configurations. Here's a refined version of the steps:
 
 ---
