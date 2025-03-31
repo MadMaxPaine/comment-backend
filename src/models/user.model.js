@@ -9,6 +9,10 @@ const User = sequelize.define("User", {
   password: { type: DataTypes.STRING,allowNull: false  },
   homepage: { type: DataTypes.STRING },
   avatar: { type: DataTypes.STRING },
+  ipAddress: { type: DataTypes.STRING, allowNull: true }, // Змінено
+  userAgent: { type: DataTypes.STRING, allowNull: true }, // Змінено
+  fingerprint: { type: DataTypes.STRING, allowNull: true },
+  country: { type: DataTypes.STRING, allowNull: true },
 });
 
 module.exports = User;

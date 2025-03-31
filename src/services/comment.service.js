@@ -46,17 +46,87 @@ class CommentService {
     }
   }
 
-  // Отримати всі коментарі разом з даними користувачів
+  async getAllComments(
+    page,
+    pageSize = 5,
+    sortBy,
+    sortOrder
+  ) {
+    
+    try {
+      // Перевірка на допустимі поля для сортування
+      const validSortFields = ["createdAt", "username", "email"];
+      if (!sortBy || !validSortFields.includes(sortBy)) {
+        throw new Error(`Invalid sort field: ${sortBy}`);
+      }
+  
+      // Перевірка на допустимі порядки сортування
+      const validSortOrders = ["asc", "desc"];
+      if (!sortOrder || !validSortOrders.includes(sortOrder)) {
+        throw new Error(`Invalid sort order: ${sortOrder}`);
+      }
+  
+      // Перевірка page і pageSize на коректність
+      page = parseInt(page, 10) || 1;
+      pageSize = parseInt(pageSize, 10) || 25;
+      const offset = (page - 1) * pageSize;
+      console.log(offset,pageSize);
+      
+      // Сортування за полями, враховуючи зв'язки
+      let order = [];
+      if (sortBy === "createdAt") {
+        order = [["createdAt", sortOrder]]; // Сортуємо по полю createdAt
+      } else if (sortBy === "username") {
+        order = [
+          [{ model: User, as: "author" }, "username", sortOrder],
+          [{ model: Anonymous, as: "anonymousAuthor" }, "username", sortOrder],
+        ];
+      } else if (sortBy === "email") {
+        order = [
+          [{ model: User, as: "author" }, "email", sortOrder],
+          [{ model: Anonymous, as: "anonymousAuthor" }, "email", sortOrder],
+        ];
+      }
+  
+      // Потрібно перевірити, чи правильно вказано атрибути у `include` та правильні асоціації
+      const { rows: comments, count } = await Comment.findAndCountAll({
+        limit: pageSize,
+        offset: offset,
+        order: order,
+        include: [
+          {
+            model: User,
+            as: "author",
+            attributes: ["id", "username", "email"], // Перевірка на правильні поля
+          },
+          {
+            model: Anonymous,
+            as: "anonymousAuthor",
+            attributes: ["id", "username", "email"], // Перевірка на правильні поля
+          },
+        ],
+        logging: console.log, // Додати для виведення SQL запитів
+      });
+      
+      
+      return {
+        comments,
+        total: count, // Загальна кількість коментарів
+        totalPages: Math.ceil(count / pageSize), // Кількість сторінок
+        currentPage: page,
+      };
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+      throw new Error("Failed to fetch comments");
+    }
+  }
+  
+
+  /*// Отримати всі коментарі разом з даними користувачів
   async getAllComments() {
     try {
       const comments = await Comment.findAll({
-        where: {
-          [Sequelize.Op.or]: [
-            { userId: { [Sequelize.Op.ne]: null } },
-            { anonymousId: { [Sequelize.Op.ne]: null } },
-          ],
-        },
-        include: [
+          include: [
           {
             model: User,
             as: "author",
@@ -69,11 +139,13 @@ class CommentService {
           },
         ],
       });
+      console.log(comments);
+      
       return comments;
     } catch (error) {
       throw new Error("Failed to fetch comments");
     }
-  }
+  }*/
 
   // Отримати коментар за ID
   async getCommentById(commentId) {

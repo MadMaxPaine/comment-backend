@@ -6,11 +6,12 @@ const cfg = require("../config/config");
 class CommentController {
   // Створити коментар
   async create(req, res, next) {
+    //console.log(req.body);
+    //console.log(req.headers.authorization);
     try {
       // Перевірка наявності токену в заголовках запиту
       const token = req.headers.authorization?.split(" ")[1];
       let user = null;
-
       if (token) {
         try {
           // Якщо токен є, декодуємо його для отримання даних користувача
@@ -33,7 +34,13 @@ class CommentController {
   // Отримати всі коментарі
   async getAll(req, res, next) {
     try {
-      const comments = await commentService.getAllComments();
+      const comments = await commentService.getAllComments(
+        req.query.page.page,
+        req.query.pageSize.pageSize,
+        req.query.page.sortBy,
+        req.query.page.sortOrder
+      );
+           // Перевірте, що коментарі дійсно отримано
       return res.status(200).json(comments);
     } catch (error) {
       return next(ApiError.internal(error.message));

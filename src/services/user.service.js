@@ -13,7 +13,7 @@ const {
 const User = require("../models/user.model");
 const ApiError = require("../errors/errors.API");
 const UserDto = require("../dtos/user.dto");
-
+const geoip = require("geoip-lite");
 const cfg = require("../config/config");
 
 module.exports.getOne = async function getOne(req, res, next) {
@@ -110,6 +110,13 @@ module.exports.registration = async function registration(req, res, next) {
     // Хешування пароля
     const hashPassword = await bcrypt.hash(password, 5);
     console.log("Password hashed:", hashPassword); // Логування хешованого пароля
+    // Отримуємо дані про пристрій користувача
+    const ipAddress =
+      req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    const userAgent = req.headers["user-agent"];
+    const geo = geoip.lookup(ipAddress); // Визначаємо країну
+    const country = geo ? geo.country : null;
+    const fingerprint = req.headers["x-fingerprint"] || null; // Якщо клієнт відправляє
 
     // Створення користувача
     const user = await User.create({
@@ -118,6 +125,10 @@ module.exports.registration = async function registration(req, res, next) {
       password: hashPassword,
       homepage: homepage ?? "",
       avatar: avatarFileName,
+      ipAddress,
+      userAgent,
+      fingerprint,
+      country,
     });
 
     console.log("New user created:", user); // Логування створеного користувача
@@ -139,7 +150,7 @@ module.exports.registration = async function registration(req, res, next) {
     });
 
     // Відправка відповіді
-    return res.json({ ...token, userDto });
+    res.json({ ...token, userDto });
   } catch (e) {
     console.error("Error in registration:", e); // Логування помилки
     next(e);
