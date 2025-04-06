@@ -61,7 +61,7 @@ async function handleAvatar(avatar) {
         __dirname,
         "..",
         "uploads",
-        "image.data",
+        "avatars",
         avatarFileName
       );
       fs.writeFileSync(uploadPath, buffer);
@@ -80,6 +80,8 @@ async function handleAvatar(avatar) {
 
 module.exports.registration = async function registration(req, res, next) {
   try {
+    console.log(req.body);
+    
     // Валідація запиту
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -87,7 +89,7 @@ module.exports.registration = async function registration(req, res, next) {
       return next(ApiError.badRequest("Validation error", errors.array()));
     }
 
-    const { username, email, password, homepage, avatar } = req.body;
+    const { username, email, password, homepage } = req.body;
     console.log("Registration data:", req.body); // Логування отриманих даних
 
     // Перевірка на наявність необхідних полів
@@ -106,7 +108,8 @@ module.exports.registration = async function registration(req, res, next) {
     }
 
     // Обробка аватара
-    const avatarFileName = await handleAvatar(avatar);
+    //const avatarFileName = await handleAvatar(avatar);
+    const avatarFileName = req.file ? req.file.filename : "";
     // Хешування пароля
     const hashPassword = await bcrypt.hash(password, 5);
     console.log("Password hashed:", hashPassword); // Логування хешованого пароля
@@ -201,7 +204,7 @@ module.exports.refresh = async function refresh(req, res, next) {
     const { refreshToken } = req.cookies;
     console.log("Refresh token:", refreshToken); // Логування refreshToken для оновлення
     if (!refreshToken) {
-      throw ApiError.unauthorizedError();
+      next (ApiError.unauthorizedError());
     }
     const userData = validateRefreshToken(refreshToken);
     const tokenFromDb = await findToken(refreshToken);
@@ -212,7 +215,7 @@ module.exports.refresh = async function refresh(req, res, next) {
       console.log(tokenFromDb);
 
       // Викидаємо помилку авторизації
-      throw ApiError.unauthorizedError();
+      next (ApiError.unauthorizedError());
     }
     const user = await User.findOne({ where: { id: userData.id } });
     const userDto = new UserDto(user);

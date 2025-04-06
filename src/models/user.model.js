@@ -7,8 +7,8 @@ const User = sequelize.define("User", {
   username: { type: DataTypes.STRING, unique: false },
   email: { type: DataTypes.STRING, unique: true },
   password: { type: DataTypes.STRING,allowNull: false  },
-  homepage: { type: DataTypes.STRING },
-  avatar: { type: DataTypes.STRING },
+  homepage: { type: DataTypes.STRING, allowNull: true},
+  avatar: { type: DataTypes.STRING,allowNull: true },
   ipAddress: { type: DataTypes.STRING, allowNull: true }, // Змінено
   userAgent: { type: DataTypes.STRING, allowNull: true }, // Змінено
   fingerprint: { type: DataTypes.STRING, allowNull: true },

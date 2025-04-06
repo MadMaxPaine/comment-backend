@@ -5,9 +5,7 @@ const cfg = require("../config/config");
 
 class CommentController {
   // Створити коментар
-  async create(req, res, next) {
-    //console.log(req.body);
-    //console.log(req.headers.authorization);
+  async create(req, res, next) {    
     try {
       // Перевірка наявності токену в заголовках запиту
       const token = req.headers.authorization?.split(" ")[1];
@@ -24,10 +22,12 @@ class CommentController {
 
       // Викликаємо сервіс для створення коментаря, передаючи дані про користувача (якщо є)
       const comment = await commentService.createComment(req, user);
-
+      // Очищаємо CAPTCHA після успішного створення коментаря
+      req.session.captcha = null;
+      req.session.isCaptchaVerified = false;
       return res.status(201).json(comment);
     } catch (error) {
-      return next(ApiError.internal(error.message));
+      return next(ApiError.internal(error));
     }
   }
 
@@ -40,8 +40,22 @@ class CommentController {
         req.query.page.sortBy,
         req.query.page.sortOrder
       );
-           // Перевірте, що коментарі дійсно отримано
+      // Перевірте, що коментарі дійсно отримано
       return res.status(200).json(comments);
+    } catch (error) {
+      return next(ApiError.internal(error.message));
+    }
+  }
+  // Отримати всі коментарі
+  async getReplies(req, res, next) {    
+    const { id } = req.params; // отримаємо id з параметрів URL
+    const { page, pageSize } = req.query;
+    if (!id) {
+      return next(ApiError.badRequest("ID коментаря обов’язковий"));
+    }
+    try {
+      const replies = await commentService.getAllReply(id, page, pageSize);
+      return res.status(200).json(replies);
     } catch (error) {
       return next(ApiError.internal(error.message));
     }
@@ -58,35 +72,7 @@ class CommentController {
       return next(ApiError.internal(error.message));
     }
   }
-
-  // Оновити коментар
-  async update(req, res, next) {
-    const { id } = req.params;
-    const { content } = req.body;
-
-    if (!content) {
-      return next(ApiError.badRequest("Content is required"));
-    }
-
-    try {
-      const updatedComment = await commentService.updateComment(id, content);
-      return res.status(200).json(updatedComment);
-    } catch (error) {
-      return next(ApiError.internal(error.message));
-    }
-  }
-
-  // Видалити коментар
-  async delete(req, res, next) {
-    const { id } = req.params;
-
-    try {
-      const response = await commentService.deleteComment(id);
-      return res.status(200).json(response);
-    } catch (error) {
-      return next(ApiError.internal(error.message));
-    }
-  }
+  
 }
 
 module.exports = new CommentController();

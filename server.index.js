@@ -17,22 +17,23 @@ const session = require("express-session");
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  express.static(path.resolve(__dirname, "..","uploads","image.data"), {
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.resolve(__dirname, "src", "uploads")));
+/*app.use(
+  express.static(path.resolve(__dirname, "..", "uploads", "image.data"), {
     setHeaders: (res, path) => {
       console.log(`Requesting file: ${path}`);
     },
   })
-);
+);*/
 
-app.use(fileUpload({}));
+//app.use(fileUpload({}));
 app.use(
   cors({
     origin: cfg.server.clientUrl,
     credentials: true,
   })
 );
-app.use("/api", router);
 
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Server is online!" });
@@ -40,39 +41,66 @@ app.get("/", (req, res) => {
 
 app.use(errorHandler);
 
-// Налаштування сесій
-app.use(session({
-  secret: cfg.jwt.secret,  // Задайте секретний ключ
-  resave: false,
-  saveUninitialized: true,
-}));
-
+app.use(
+  session({
+    secret: "your_secret_key", // Секретний ключ для сесії
+    resave: false, // Не зберігати сесію, якщо нічого не змінилося
+    saveUninitialized: true, // Зберігати незаповнені сесії
+    cookie: {
+      secure: false, // Якщо працюєш без HTTPS
+      maxAge: 300000, // Сесія буде існувати 5 хвилин (300000 мс), можна збільшити
+    },
+  })
+);
+app.use("/api", router);
+/*
+app.get("/sessiontest", (req, res) => {
+  if (!req.session.viewCount) {
+    req.session.viewCount = 1;
+    res.send("Session initialized.");
+  } else {
+    req.session.viewCount += 1;
+    res.send(`You have visited this page ${req.session.viewCount} times.`);
+  }
+});*/
+// 📌 Генерація CAPTCHA
 app.get("/captcha", (req, res) => {
-  const captcha = svgCaptcha.create();
-  // Зберігаємо текст CAPTCHA у сесії
-  req.session.captcha = captcha.text;  
+  const captcha = svgCaptcha.create({ noise: 6, size: 6, color: true });
+  req.session.captcha = captcha.text.toLowerCase(); // Зберігаємо CAPTCHA (у нижньому регістрі)
+  req.session.captchaGeneratedAt = Date.now(); // Додаємо час створення CAPTCHA
+
+  console.log("Generated CAPTCHA:", captcha.text);
+  console.log("Session after generating CAPTCHA:", req.session);
+
   res.type("svg");
   res.send(captcha.data);
 });
 
-// API для отримання тексту CAPTCHA
-app.get("/captcha-text", (req, res) => {
-  // Надсилаємо текст CAPTCHA з сесії
-    if (req.session.captcha) {
-    res.json({ captchaText: req.session.captcha });
-  } else {
-    res.status(400).json({ error: "CAPTCHA text not found" });
-  }
-});
-
-app.post("/submit", express.json(), (req, res) => {
+app.post("/submit", (req, res) => {
   const { captchaInput } = req.body;
+  console.log("Captcha Input:", captchaInput);
+  console.log("Session before CAPTCHA check:", req.session);
 
-  if (captchaInput === req.session.captcha) {
-    res.send("Captcha correct!");
-  } else {
-    res.send("Captcha incorrect!");
+  // Перевірка терміну дії CAPTCHA
+  const captchaExpiryTime = 5 * 60 * 1000; // 5 хвилин
+  const captchaGeneratedAt = req.session.captchaGeneratedAt || 0;
+  if (Date.now() - captchaGeneratedAt > captchaExpiryTime) {
+    return res.status(400).send("Captcha expired. Try again.");
   }
+
+  if (!req.session.captcha) {
+    return res.status(400).send("Captcha expired. Try again.");
+  }
+
+  // Перевірка введеного тексту CAPTCHA
+  if (captchaInput.toLowerCase() === req.session.captcha) {
+    req.session.isCaptchaVerified = true; // Відзначаємо, що CAPTCHA пройдена
+    //console.log(req.session);
+
+    return res.send("✅ Captcha correct!");
+  }
+
+  res.send("❌ Captcha incorrect!");
 });
 const start = async () => {
   try {
