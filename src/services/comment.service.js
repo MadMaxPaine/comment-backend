@@ -1,78 +1,75 @@
-// src/services/comment.service.js
-const Comment = require("../models/comment.model"); // Імпортуємо модель коментаря
-const AnonymousController = require("../controllers/anonymous.controller");
+const Comment = require("../models/comment.model");
 const User = require("../models/user.model");
 const Anonymous = require("../models/anonymous.model");
-
+const ApiError = require("../errors/errors.API");
+const { cleanComments, cleanComment } = require("../utils/cleanComment");
 class CommentService {
-  // Створити новий коментар
-  async createComment(data, user) {
+  // Отримати коментар за IDз авторами
+  async getCommentWithUserInfo(commentId) {
     try {
-      const { email, text, parentId } = data.body;
-      const fileURL = data.file?.path
-        ? "uploads" + data.file.path.split("uploads")[1]
-        : null;
-
-      // Перевірка, чи є авторизований користувач (токен присутній)
-      if (user) {
-        // Створення коментаря для авторизованого користувача
-        const comment = await Comment.create({
-          text: text,
-          fileUrl: fileURL ?? null,
-          parentId: parentId || null,
-          userId: user.id,
-          anonymousId: null,
-        });
-
-        return comment; // Повертаємо створений коментар
-      }
-
-      // Якщо користувач не авторизований (немає токена), працюємо як з анонімним користувачем
-      let anon = await AnonymousController.getOneEmail(email);
-      if (!anon) {
-        anon = await AnonymousController.create(data);
-      }
-
-      // Створюємо коментар від анонімного користувача
-      const comment = await Comment.create({
-        text: text,
-        fileUrl: fileURL ?? null,
-        parentId: parentId || null,
-        userId: null,
-        anonymousId: anon.id,
+      const comment = await Comment.findOne({
+        where: { id: commentId },
+        include: [
+          {
+            model: User,
+            as: "author",
+            attributes: ["id", "username", "email", "avatar"],
+          },
+          {
+            model: Anonymous,
+            as: "anonymousAuthor",
+            attributes: ["id", "username", "email"],
+          },
+        ],
       });
-
-      return comment; // Повертаємо створений коментар
+      if (!comment) {
+        throw ApiError.notFound("Comment not found");
+      }
+      const cleanedComment = cleanComment(comment);
+      return cleanedComment;
+    } catch (error) {
+      console.error("Failed to fetch comment:", error);
+      throw ApiError.internal("Failed to fetch comment");
+    }
+  }
+  // Створити новий коментар
+  async createComment(data) {
+    try {
+      const { text, fileUrl, parentId, userId, anonymousId } = data;
+      const comment = await Comment.create({
+        text,
+        fileUrl,
+        parentId,
+        userId,
+        anonymousId,
+      });
+      return comment;
     } catch (error) {
       console.error("Error creating comment:", error);
-      throw new Error("Failed to create comment: " + error.message);
+      throw ApiError.internal("Failed to create comment: " + error.message);
     }
   }
 
-  async getAllComments(page, pageSize = 5, sortBy, sortOrder) {
+  // Отримати всі коментарі
+  async getAllComments(page, pageSize = 25, sortBy, sortOrder) {
     try {
-      // Перевірка на допустимі поля для сортування
       const validSortFields = ["createdAt", "username", "email"];
       if (!sortBy || !validSortFields.includes(sortBy)) {
-        throw new Error(`Invalid sort field: ${sortBy}`);
+        throw ApiError.badRequest(`Invalid sort field: ${sortBy}`);
       }
 
-      // Перевірка на допустимі порядки сортування
       const validSortOrders = ["asc", "desc"];
       if (!sortOrder || !validSortOrders.includes(sortOrder)) {
-        throw new Error(`Invalid sort order: ${sortOrder}`);
+        throw ApiError.badRequest(`Invalid sort order: ${sortOrder}`);
       }
 
-      // Перевірка page і pageSize на коректність
       page = parseInt(page, 10) || 1;
       pageSize = parseInt(pageSize, 10) || 25;
       const offset = (page - 1) * pageSize;
-      console.log(offset, pageSize);
 
-      // Сортування за полями, враховуючи зв'язки
       let order = [];
       if (sortBy === "createdAt") {
-        order = [["createdAt", sortOrder]]; // Сортуємо по полю createdAt
+        order = [["createdAt", sortOrder]];
       } else if (sortBy === "username") {
         order = [
           [{ model: User, as: "author" }, "username", sortOrder],
@@ -85,7 +82,6 @@ class CommentService {
         ];
       }
 
-      // Потрібно перевірити, чи правильно вказано атрибути у `include` та правильні асоціації
       const { rows: comments, count } = await Comment.findAndCountAll({
         where: { parentId: null },
         limit: pageSize,
@@ -95,67 +91,71 @@ class CommentService {
           {
             model: User,
             as: "author",
-            attributes: ["id", "username", "email", "avatar"], // Перевірка на правильні поля
+            attributes: ["id", "username", "email", "avatar"],
           },
           {
             model: Anonymous,
             as: "anonymousAuthor",
-            attributes: ["id", "username", "email"], // Перевірка на правильні поля
+            attributes: ["id", "username", "email"],
           },
         ],
-        logging: console.log, // Додати для виведення SQL запитів
       });
-
+      const cleanedComments = cleanComments(comments);
       return {
-        comments,
-        total: count, // Загальна кількість коментарів
-        totalPages: Math.ceil(count / pageSize), // Кількість сторінок
+        comments: cleanedComments,
+        total: count,
+        totalPages: Math.ceil(count / pageSize),
         currentPage: page,
       };
     } catch (error) {
       console.error("Failed to fetch comments:", error);
-      throw new Error("Failed to fetch comments");
+      throw ApiError.internal("Failed to fetch comments");
     }
   }
-  // Отримати всі підкоментарі разом з даними користувачів
-  async getAllReply(id, page, pageSize = 5) {
+
+  // Отримати всі підкоментарі
+  async getAllReply(id, page, pageSize = 25) {
     try {
       if (!id) {
-        throw new Error(`No ID!`);
+        throw ApiError.badRequest("ID is required");
       }
-      // Перевірка page і pageSize на коректність
       page = parseInt(page, 10) || 1;
-      pageSize = parseInt(pageSize, 10) || 25;
+      pageSize = parseInt(pageSize, 10) || 5;
       const offset = (page - 1) * pageSize;
+
       const { rows: comments, count } = await Comment.findAndCountAll({
         where: { parentId: id },
         limit: pageSize,
         offset: offset,
-        order: [["createdAt", "asc"]],
+        order: [["createdAt", "desc"]],
         include: [
           {
             model: User,
             as: "author",
-            attributes: ["id", "username", "email", "avatar"], // Перевірка на правильні поля
+            attributes: ["id", "username", "email", "avatar"],
           },
+
           {
             model: Anonymous,
             as: "anonymousAuthor",
-            attributes: ["id", "username", "email"], // Перевірка на правильні поля
+            attributes: ["id", "username", "email"],
           },
         ],
-        logging: console.log, // Додати для виведення SQL запитів
       });
-      console.log(comments);
+
+      const totalPages = Math.ceil(count / pageSize);
+      const hasMoreReplies = page < totalPages;
+      const cleanedComments = cleanComments(comments);
       return {
-        comments,
-        total: count, // Загальна кількість коментарів
-        totalPages: Math.ceil(count / pageSize), // Кількість сторінок
+        comments: cleanedComments,
+        totalReplies: count,
+        totalPages,
         currentPage: page,
+        hasMoreReplies,
       };
     } catch (error) {
       console.error("Failed to fetch comments:", error);
-      throw new Error("Failed to fetch comments");
+      throw ApiError.internal("Failed to fetch comments");
     }
   }
 
@@ -164,11 +164,112 @@ class CommentService {
     try {
       const comment = await Comment.findByPk(commentId);
       if (!comment) {
-        throw new Error("Comment not found");
+        throw ApiError.notFound("Comment not found");
       }
       return comment;
     } catch (error) {
-      throw new Error("Failed to fetch comment");
+      console.error("Failed to fetch comment:", error);
+      throw ApiError.internal("Failed to fetch comment");
+    }
+  }
+
+  // Отримати всі коментарі тільки ID
+  async getAllCommentIds(page, pageSize = 25, sortBy, sortOrder) {
+    try {
+      const validSortFields = ["createdAt", "username", "email"];
+      if (!sortBy || !validSortFields.includes(sortBy)) {
+        throw ApiError.badRequest(`Invalid sort field: ${sortBy}`);
+      }
+
+      const validSortOrders = ["asc", "desc"];
+      if (!sortOrder || !validSortOrders.includes(sortOrder)) {
+        throw ApiError.badRequest(`Invalid sort order: ${sortOrder}`);
+      }
+
+      page = parseInt(page, 10) || 1;
+      pageSize = parseInt(pageSize, 10) || 25;
+      const offset = (page - 1) * pageSize;
+
+      const { literal } = require("sequelize");
+
+      let order;
+      if (sortBy === "createdAt") {
+        order = [["createdAt", sortOrder]];
+      } else if (sortBy === "username") {
+        order = [
+          [
+            literal(
+              `COALESCE("author"."username", "anonymousAuthor"."username")`
+            ),
+            sortOrder,
+          ],
+        ];
+      } else if (sortBy === "email") {
+        order = [
+          [
+            literal(`COALESCE("author"."email", "anonymousAuthor"."email")`),
+            sortOrder,
+          ],
+        ];
+      }
+
+      const { rows: comments, count } = await Comment.findAndCountAll({
+        attributes: ["id"],
+        where: { parentId: null },
+        limit: pageSize,
+        offset,
+        order,
+        include: [
+          {
+            model: User,
+            as: "author",
+            attributes: [],
+            required: false,
+          },
+          {
+            model: Anonymous,
+            as: "anonymousAuthor",
+            attributes: [],
+            required: false,
+          },
+        ],
+      });
+
+      return {
+        comments: comments.map((c) => c.id),
+        total: count,
+        totalPages: Math.ceil(count / pageSize),
+        currentPage: page,
+      };
+    } catch (error) {
+      console.error("Failed to fetch comment IDs:", error);
+      throw ApiError.internal("Failed to fetch comment IDs");
+    }
+  }
+  // Метод сервісу тільки для вибірки ID підкоментарів
+  async getAllReplyIds(id, page, pageSize = 25) {
+    try {
+      if (!id) {
+        throw ApiError.badRequest("ID is required");
+      }
+
+      page = parseInt(page, 10) || 1;
+      pageSize = parseInt(pageSize, 10) || 5;
+      const offset = (page - 1) * pageSize;
+
+      // Отримуємо тільки ID коментарів
+      const { rows: comments, count } = await Comment.findAndCountAll({
+        where: { parentId: id },
+        limit: pageSize,
+        offset: offset,
+        order: [["createdAt", "desc"]],
+        attributes: ["id"], // Тільки ID
+      });
+
+      return { comments, count };
+    } catch (error) {
+      console.error("Failed to fetch replies:", error);
+      throw ApiError.internal("Failed to fetch replies");
     }
   }
 }
