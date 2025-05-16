@@ -1,16 +1,19 @@
 const Router = require("express");
-const { body } = require("express-validator");
 const upload = require("../middlewares/avatar.middleware");
 
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
+const {
+  registerValidation,
+} = require("../validations/registration.validation");
+const validateRequest = require("../middlewares/validate.request");
 const router = new Router();
 
 router.post(
   "/registration",
   upload.single("avatar"),
-  body("email").isEmail(),
-  body("password").isLength({ min: 3, max: 25 }),
+  registerValidation,
+  validateRequest,
   userController.registration
 );
 router.post("/login", userController.login);
