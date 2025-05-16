@@ -2,6 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const sharp = require("sharp");
+const ApiError = require("../errors/errors.API");
 
 const uploadImgDir = path.join(__dirname, "..", "uploads/comments/img");
 const uploadTXTDir = path.join(__dirname, "..", "uploads/comments/txt");
@@ -13,11 +14,10 @@ const uploadTXTDir = path.join(__dirname, "..", "uploads/comments/txt");
   }
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedImageTypes = ["image/jpeg", "image/png", "image/gif"];
-  const allowedTextTypes = ["text/plain"];
-  
+const allowedImageTypes = ["image/jpeg", "image/png", "image/gif"];
+const allowedTextTypes = ["text/plain"];
 
+const fileFilter = (req, file, cb) => {
   console.log("File type:", file.mimetype);
 
   if (
@@ -28,7 +28,7 @@ const fileFilter = (req, file, cb) => {
   }
 
   console.error("Unsupported file type:", file.mimetype);
-  return cb(new Error("Непідтримуваний тип файлу!"), false);
+  return cb(ApiError.badRequest("Supported file formats: image/jpeg, image/png, image/gif, text/plain"), false);
 };
 
 const fileStorage = multer.diskStorage({
@@ -46,7 +46,6 @@ const fileStorage = multer.diskStorage({
       else if (file.mimetype === "text/plain") ext = ".txt";
       else ext = ".bin"; // fallback
     }
-
     const fileName = uniqueSuffix + ext;
     console.log("Filename", fileName);
 
@@ -64,18 +63,16 @@ const checkFileSize = (req, res, next) => {
   if (!req.file) return next();
 
   if (req.file.mimetype === "text/plain" && req.file.size > 100 * 1024) {
-    return res
-      .status(400)
-      .json({ error: "Текстовий файл не повинен перевищувати 100KB" });
+    return next(
+      ApiError.badRequest("Text-file size should be less than 100 KB.")
+    );
   }
 
   if (
     req.file.mimetype.startsWith("image/") &&
     req.file.size > 5 * 1024 * 1024
   ) {
-    return res
-      .status(400)
-      .json({ error: "Зображення не повинно перевищувати 5MB" });
+    return next(ApiError.badRequest("Img size should be less than 5 MB."));
   }
 
   next();
@@ -95,7 +92,7 @@ const resizeImage = async (req, res, next) => {
       await sharp(filePath)
         .resize(320, 240, { fit: "inside" })
         .toFile(newFilePath);
-      fs.unlinkSync(filePath);
+      await fs.promises.unlink(filePath); // асинхронне видалення
       req.file.filename = newFileName;
       req.file.path = newFilePath;
     }
@@ -103,7 +100,7 @@ const resizeImage = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Error while resizing image:", err);
-    res.status(500).json({ error: "Помилка при зміні розміру зображення" });
+    next(ApiError.internal("Error while changing image size."));
   }
 };
 

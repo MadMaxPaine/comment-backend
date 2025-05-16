@@ -1,7 +1,7 @@
 const multer = require("multer");
 const path = require("path");
 const uuid = require("uuid");
-
+const ApiError = require("../errors/errors.API");
 // Налаштування зберігання файлів
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -15,10 +15,14 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   // Приймаємо лише зображення
-  if (file.mimetype.startsWith("image/")) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only image files are allowed!"), false);
+  try {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  } catch (e) {
+    next(ApiError.badRequest("Unexpected error. avatar.middleware.file.filter",e));
   }
 };
 

@@ -1,6 +1,6 @@
 const ApiError = require("../errors/errors.API");
 const { validateAccessToken } = require("../services/token.service");
-
+//Мідлвер для перевірки данних авторизації а саме токенів доступу
 module.exports = function (req, res, next) {
   if (req.method === "OPTIONS") {
     next();
