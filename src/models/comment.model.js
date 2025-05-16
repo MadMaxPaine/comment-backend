@@ -1,4 +1,3 @@
-// models/comment.model.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database/db");
 const User = require("./user.model");
@@ -18,18 +17,15 @@ const Comment = sequelize.define("Comment", {
     onDelete: "CASCADE",
   },
   userId: {
-    
     type: DataTypes.INTEGER,
     allowNull: true,
     references: { model: User, key: "id" },
   },
   anonymousId: {
-    
     type: DataTypes.INTEGER,
     allowNull: true,
     references: { model: Anonymous, key: "id" },
   },
 });
-
 
 module.exports = Comment;
