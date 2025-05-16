@@ -12,3 +12,4 @@ module.exports = class UserDto {
     this.avatar = model.avatar;
   }
 };
+//DTO - для зареєстрованих користувачів
