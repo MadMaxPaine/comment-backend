@@ -6,7 +6,7 @@ module.exports = class ApiError extends Error {
     this.errors = errors;
   }
   static unauthorizedError() {
-    return new ApiError(401, "User doesn't authorized!");
+    return new ApiError(401, "User do not authorized.");
   }
   static badRequest(message, errors = []) {
     return new ApiError(400, message, errors);
