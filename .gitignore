@@ -1,6 +1,7 @@
 #Node_modules
 /node_modules
-/uploads/*
+/uploads
 /uploads/image.data/
 #.env
 /*.env
+src/uploads/

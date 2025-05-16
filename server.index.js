@@ -130,7 +130,7 @@ const start = async () => {
     client.release(); // Відпускаємо підключення
 
     await sequelize.authenticate();
-    await sequelize.sync({ force: true });
+    await sequelize.sync(/*{ force: true }*/);
 
     app.listen(PORT, () => console.log(`Server is starting on port: ${PORT}`));
   } catch (e) {
