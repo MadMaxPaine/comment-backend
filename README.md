@@ -5,7 +5,7 @@ Here is the information structured into two columns with the content aligned to 
 | **Feature**                           | **Status**         |
 |---------------------------------------|--------------------|
 | Database (db), Models                 | Completed          |
-| Centralized Configurations (all configs) | Completed       |
+| Centralized Configurations            | Completed          |
 | Middlewares                           | Completed          |
 | DTOs (Data Transfer Objects)          | Completed          |
 | Error Handling                        | Completed          |
@@ -15,24 +15,23 @@ Here is the information structured into two columns with the content aligned to 
 | Sessions                              | Completed          |
 | CAPTCHA (Backend Part)                | Completed          |
 | JWT (Full Implementation)             | Completed          |
-
+| Sockets                               | Completed          |
+| Comment File Processing               | Completed          |
+| Server-side Validation                | Completed          |
+| SQL Injection Prevention              | Completed          |
+| Sorting                               | Completed          |
+| Pagination Requests                   | Completed          |
+| Stack                                 | Completed          |
+| Events                                | Completed          |
 ---
 
 ### **Backend - What's Left to Do:**
 
 | **Feature**                           | **Status**         |
 |---------------------------------------|--------------------|
-| Sockets                               | Pending            |
-| Comment File Processing               | Pending            |
-| Server-side Validation               | Partly Done         |
-| SQL Injection Prevention              | Pending (Express?) |
-| Sorting                               | Pending            |
-| Pagination Requests                  | Pending             |
-| Stack?                                | Clarify Stack      |
-| Events?                               | Clarify Events     |
+
 | Testing with Jest                     | Pending            |
 | Code Cleaning                         | Pending            |
-| Error Checking                        | Pending            |
 | Docker Integration                    | Pending            |
 | Docker Compose Setup                  | Pending            |
 | Deployment                            | Pending            |
